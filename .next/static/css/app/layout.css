@@ -979,14 +979,17 @@ select.input-number {
 .max-h-\[88vh\] {
   max-height: 88vh;
 }
+.max-h-\[90vh\] {
+  max-height: 90vh;
+}
 .max-h-\[92vh\] {
   max-height: 92vh;
 }
-.min-h-\[100px\] {
-  min-height: 100px;
-}
 .min-h-\[160px\] {
   min-height: 160px;
+}
+.min-h-\[90px\] {
+  min-height: 90px;
 }
 .min-h-screen {
   min-height: 100vh;
@@ -1221,6 +1224,9 @@ select.input-number {
 .rounded-xl {
   border-radius: 0.75rem;
 }
+.rounded {
+  border-radius: 0.25rem;
+}
 .border {
   border-width: 1px;
 }
@@ -1276,6 +1282,9 @@ select.input-number {
 }
 .border-purple-500\/25 {
   border-color: rgb(168 85 247 / 0.25);
+}
+.border-red-500\/25 {
+  border-color: rgb(239 68 68 / 0.25);
 }
 .border-red-500\/30 {
   border-color: rgb(239 68 68 / 0.3);
@@ -1678,6 +1687,9 @@ select.input-number {
 }
 .text-white\/60 {
   color: rgb(255 255 255 / 0.6);
+}
+.text-white\/70 {
+  color: rgb(255 255 255 / 0.7);
 }
 .text-white\/80 {
   color: rgb(255 255 255 / 0.8);

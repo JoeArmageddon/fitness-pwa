@@ -55,17 +55,19 @@ function MacroBar({ label, value, goal, color }: { label: string; value: number;
 // ── AI Parse Modal ─────────────────────────────────────────
 function AIParseModal({ isOpen, onClose, onAdd }: {
   isOpen: boolean; onClose: () => void;
-  onAdd: (items: Array<{ name: string; grams: number; cal: number; protein: number; carbs: number; fat: number }>) => void;
+  onAdd: (items: Array<{ name: string; grams: number; cal: number; protein: number; carbs: number; fat: number }>, mealType: MealType) => void;
 }) {
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [apiError, setApiError] = useState<any>(null);
   const [mealType, setMealType] = useState<MealType>('lunch');
 
   const parse = async () => {
     if (!text.trim()) return;
     setLoading(true);
     setResult(null);
+    setApiError(null);
     try {
       const res = await fetch('/api/ai/parse-food', {
         method: 'POST',
@@ -73,11 +75,19 @@ function AIParseModal({ isOpen, onClose, onAdd }: {
         body: JSON.stringify({ text }),
       });
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      if (!data.items?.length) throw new Error('Could not parse foods');
+
+      if (!res.ok || data.error) {
+        // Show full error details in the modal, not just a toast
+        setApiError(data);
+        return;
+      }
+      if (!data.items?.length) {
+        setApiError({ error: 'AI returned no food items. Try rephrasing.' });
+        return;
+      }
       setResult(data);
     } catch (e: any) {
-      toast(e.message ?? 'Parse failed', 'error');
+      setApiError({ error: `Network error: ${e.message}` });
     } finally {
       setLoading(false);
     }
@@ -88,18 +98,21 @@ function AIParseModal({ isOpen, onClose, onAdd }: {
     onAdd(result.items.map((item: any) => ({
       name: item.name, grams: item.quantity_g,
       cal: item.calories, protein: item.protein, carbs: item.carbs, fat: item.fat,
-    })));
-    setText(''); setResult(null); onClose();
+    })), mealType);
+    setText(''); setResult(null); setApiError(null); onClose();
   };
 
+  const reset = () => { setResult(null); setApiError(null); };
+
   if (!isOpen) return null;
-  const sourceColor = result?.source === 'gemini' ? '#BF5AF2' : result?.source === 'groq' ? '#0A84FF' : '#FF9F0A';
-  const sourceLabel = result?.source === 'gemini' ? 'Gemini AI' : result?.source === 'groq' ? 'Groq AI' : 'Local DB';
+
+  const sourceColor = result?.source === 'gemini' ? '#BF5AF2' : '#0A84FF';
+  const sourceLabel = result?.source === 'gemini' ? 'Gemini AI' : 'Groq AI';
 
   return (
     <div className="fixed inset-0 z-50 flex items-end">
       <div className="absolute inset-0 bg-black/65 backdrop-blur-md" onClick={onClose} />
-      <div className="relative w-full animate-slide-up sheet">
+      <div className="relative w-full animate-slide-up sheet max-h-[90vh] overflow-y-auto">
         <div className="sheet-handle" />
         <div className="flex items-center gap-3 mb-5">
           <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
@@ -107,20 +120,22 @@ function AIParseModal({ isOpen, onClose, onAdd }: {
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">AI Food Parser</h2>
-            <p className="text-xs text-white/40">Type what you ate in plain English</p>
+            <p className="text-xs text-white/40">Type exactly what you ate — AI figures out the macros</p>
           </div>
         </div>
 
+        {/* Input */}
         <textarea
           value={text}
-          onChange={e => setText(e.target.value)}
-          placeholder={'e.g. 2 rotis, dal fry, and a glass of milk'}
-          className="input-apple min-h-[100px] resize-none text-sm"
+          onChange={e => { setText(e.target.value); reset(); }}
+          placeholder="e.g. 2 rotis, dal fry, glass of milk"
+          className="input-apple min-h-[90px] resize-none text-sm"
           autoFocus
         />
 
-        <div className="mt-3">
-          <p className="text-[11px] text-white/35 font-bold uppercase tracking-wider mb-2">Meal Type</p>
+        {/* Meal type */}
+        <div className="mt-3 mb-4">
+          <p className="text-[11px] text-white/35 font-bold uppercase tracking-wider mb-2">Log as</p>
           <div className="flex gap-2 flex-wrap">
             {MEAL_TYPES.map(t => (
               <button key={t} onClick={() => setMealType(t)}
@@ -132,53 +147,91 @@ function AIParseModal({ isOpen, onClose, onAdd }: {
           </div>
         </div>
 
-        <button onClick={parse} disabled={!text.trim() || loading} className="btn-primary w-full mt-4">
-          {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Sparkles size={17} />}
-          {loading ? 'Analysing...' : 'Parse Meal'}
+        <button onClick={parse} disabled={!text.trim() || loading} className="btn-primary w-full">
+          {loading
+            ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Asking AI...</>
+            : <><Sparkles size={17} /> Parse with AI</>
+          }
         </button>
 
+        {/* ── Error state ── */}
+        {apiError && (
+          <div className="mt-4 animate-fade-up">
+            <div className="p-4 bg-red-500/10 border border-red-500/25 rounded-2xl">
+              <p className="font-bold text-red-400 text-sm mb-2">⚠️ {apiError.error}</p>
+
+              {/* No keys — show setup instructions right in the modal */}
+              {apiError.noKeys && apiError.setup && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">How to fix:</p>
+                  {apiError.setup.map((step: string, i: number) => (
+                    <div key={i} className="flex gap-2 text-xs text-white/70">
+                      <span className="text-blue-400 font-bold shrink-0">{i + 1}.</span>
+                      <span>{step}</span>
+                    </div>
+                  ))}
+                  <p className="text-xs text-white/35 mt-3">The Gemini free tier gives you 1,500 AI food parses per day — more than enough.</p>
+                </div>
+              )}
+
+              {/* AI failed (keys present but API error) */}
+              {!apiError.noKeys && apiError.errors && (
+                <div className="mt-2 space-y-1">
+                  {apiError.errors.map((e: string, i: number) => (
+                    <p key={i} className="text-xs text-white/40 font-mono">{e}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Success result ── */}
         {result && (
-          <div className="mt-5 animate-fade-up space-y-3">
+          <div className="mt-4 animate-fade-up space-y-3">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-white">{result.items.length} foods found</span>
-              <span className="text-xs px-2 py-0.5 rounded-full font-semibold" style={{ background: `${sourceColor}20`, color: sourceColor }}>
-                via {sourceLabel}
+              <span className="text-sm font-bold text-white">{result.items.length} food{result.items.length !== 1 ? 's' : ''} identified</span>
+              <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+                style={{ background: `${sourceColor}20`, color: sourceColor }}>
+                ✦ {sourceLabel}
               </span>
             </div>
 
             <div className="space-y-2">
               {result.items.map((item: any, i: number) => (
-                <div key={i} className="flex items-center gap-3 p-3 bg-white/[0.04] border border-white/[0.07] rounded-2xl animate-fade-up" style={{ animationDelay: `${i * 50}ms` }}>
+                <div key={i} className="flex items-center gap-3 p-3 bg-white/[0.04] border border-white/[0.07] rounded-2xl">
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-white text-sm capitalize">{item.name}</p>
                     <p className="text-xs text-white/35 mt-0.5">{item.quantity_g}g</p>
                   </div>
-                  <div className="flex gap-3 text-right">
-                    <div><p className="text-xs font-bold text-white tabular-nums">{Math.round(item.calories)}</p><p className="text-[10px] text-white/30">kcal</p></div>
-                    <div><p className="text-xs font-bold text-blue-400 tabular-nums">{item.protein}g</p><p className="text-[10px] text-white/30">prot</p></div>
-                    <div><p className="text-xs font-bold text-orange-400 tabular-nums">{item.carbs}g</p><p className="text-[10px] text-white/30">carb</p></div>
-                    <div><p className="text-xs font-bold text-yellow-400 tabular-nums">{item.fat}g</p><p className="text-[10px] text-white/30">fat</p></div>
+                  <div className="flex gap-3">
+                    <div className="text-center"><p className="text-xs font-bold text-white tabular-nums">{Math.round(item.calories)}</p><p className="text-[9px] text-white/30">kcal</p></div>
+                    <div className="text-center"><p className="text-xs font-bold text-blue-400 tabular-nums">{item.protein}g</p><p className="text-[9px] text-white/30">prot</p></div>
+                    <div className="text-center"><p className="text-xs font-bold text-orange-400 tabular-nums">{item.carbs}g</p><p className="text-[9px] text-white/30">carb</p></div>
+                    <div className="text-center"><p className="text-xs font-bold text-yellow-400 tabular-nums">{item.fat}g</p><p className="text-[9px] text-white/30">fat</p></div>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* Totals */}
-            <div className="flex gap-4 p-3 bg-white/[0.06] rounded-2xl">
+            <div className="grid grid-cols-4 gap-2 p-3 bg-white/[0.06] border border-white/[0.08] rounded-2xl">
               {[
-                { label: 'Calories', value: Math.round(result.total_calories), color: 'text-white' },
-                { label: 'Protein', value: `${result.total_protein}g`, color: 'text-blue-400' },
-                { label: 'Carbs', value: `${result.total_carbs}g`, color: 'text-orange-400' },
-                { label: 'Fat', value: `${result.total_fat}g`, color: 'text-yellow-400' },
+                { label: 'Calories', value: Math.round(result.total_calories), color: '#fff' },
+                { label: 'Protein',  value: `${Math.round(result.total_protein)}g`,  color: '#0A84FF' },
+                { label: 'Carbs',    value: `${Math.round(result.total_carbs)}g`,    color: '#FF9F0A' },
+                { label: 'Fat',      value: `${Math.round(result.total_fat)}g`,      color: '#FFD60A' },
               ].map(({ label, value, color }) => (
-                <div key={label} className="flex-1 text-center">
-                  <p className={cn('text-sm font-bold tabular-nums', color)}>{value}</p>
-                  <p className="text-[10px] text-white/35">{label}</p>
+                <div key={label} className="text-center">
+                  <p className="text-sm font-black tabular-nums" style={{ color }}>{value}</p>
+                  <p className="text-[9px] text-white/35">{label}</p>
                 </div>
               ))}
             </div>
 
-            <button onClick={handleAdd} className="btn-primary w-full">Add to {MEAL_LABELS[mealType]}</button>
+            <button onClick={handleAdd} className="btn-primary w-full">
+              Add to {MEAL_LABELS[mealType]}
+            </button>
           </div>
         )}
       </div>
@@ -449,7 +502,7 @@ export default function NutritionPage() {
       </div>
 
       <AIParseModal isOpen={showAI} onClose={() => setShowAI(false)}
-        onAdd={(items) => addEntries(items, 'lunch')} />
+        onAdd={(items, mealType) => addEntries(items, mealType)} />
       <SearchModal isOpen={showSearch} onClose={() => setShowSearch(false)} onAdd={addSingle} />
     </div>
   );

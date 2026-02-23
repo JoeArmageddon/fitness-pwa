@@ -1,5 +1,8 @@
 {
-  "/page": "app/page.js",
   "/nutrition/page": "app/nutrition/page.js",
-  "/api/ai/parse-food/route": "app/api/ai/parse-food/route.js"
+  "/api/ai/parse-food/route": "app/api/ai/parse-food/route.js",
+  "/recovery/page": "app/recovery/page.js",
+  "/page": "app/page.js",
+  "/analytics/page": "app/analytics/page.js",
+  "/program/page": "app/program/page.js"
 }
