@@ -169,7 +169,9 @@ export default function OnboardingPage() {
                 <div key={label}>
                   <label className="section-header mb-2 block">{label}</label>
                   <input type="number" value={val}
-                    onChange={(e) => set(String(Math.min(max, Math.max(min, Number(e.target.value)))))}
+                    onChange={(e) => set(e.target.value)}
+                    onBlur={(e) => { const n = Number(e.target.value); if (!isNaN(n) && e.target.value !== '') set(String(Math.min(max, Math.max(min, n)))); }}
+                    onWheel={(e) => e.currentTarget.blur()}
                     className="input-apple w-full input-number" min={min} max={max} />
                 </div>
               ))}
