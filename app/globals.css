@@ -69,9 +69,12 @@
       radial-gradient(ellipse 60% 40% at 85% 95%, rgba(191,90,242,0.07) 0%, transparent 55%),
       radial-gradient(ellipse 50% 35% at 50% 50%, rgba(48,209,88,0.03) 0%, transparent 65%);
     pointer-events: none;
-    z-index: 0;
+    z-index: -1; /* behind all content without lifting siblings */
   }
-  body > * { position: relative; z-index: 1; }
+  /* position: relative keeps children above the glow via DOM order;
+     NO z-index here — adding z-index would create a stacking context on <main>
+     that traps modals (z-50) inside it, making them lose to nav (z-40) */
+  body > * { position: relative; }
 }
 
 /* ── Components ─────────────────────────────────────────── */
