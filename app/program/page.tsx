@@ -155,7 +155,7 @@ function ParseModal({ isOpen, onClose, onSaved, currentCount }: { isOpen: boolea
   return (
     <div className="fixed inset-0 z-50 flex items-end">
       <div className="absolute inset-0 bg-black/65 backdrop-blur-md" onClick={onClose} />
-      <div className="relative w-full animate-slide-up sheet max-h-[92vh] overflow-y-auto">
+      <div className="relative w-full animate-slide-up sheet">
         <div className="sheet-handle" />
         {atLimit && (
           <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl text-sm text-yellow-300 text-center">

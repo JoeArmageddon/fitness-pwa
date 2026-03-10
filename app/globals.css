@@ -277,7 +277,9 @@
     border-radius: 28px 28px 0 0;
     /* Bottom pad clears iOS home indicator */
     padding: 0 20px max(40px, calc(env(safe-area-inset-bottom) + 24px));
-    max-height: 92vh;
+    /* svh = small viewport height (all browser chrome shown) — avoids going under URL bar in iOS Safari */
+    max-height: 82vh;     /* fallback for browsers without svh */
+    max-height: 82svh;
     overflow-y: auto;
   }
   .sheet-handle {

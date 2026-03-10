@@ -5,10 +5,12 @@
 // ============================================================
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from '@/lib/supabase-server';
+import { getServerSession, createSupabaseServerClient } from '@/lib/supabase-server';
 import { localFoodParser, safeJSONParser } from '@/lib/ai';
 import { sanitizeText, sanitizeEnum, validateParsedFood } from '@/lib/sanitize';
-import type { MealType, ParsedFoodEntry } from '@/types';
+import { getLimit } from '@/lib/limits';
+import { checkRateLimit } from '@/lib/rate-limit';
+import type { MealType, ParsedFoodEntry, Plan } from '@/types';
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout'];
@@ -52,6 +54,32 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // ── Rate limit (per user, per day) ────────────────────────
+  const supabase = createSupabaseServerClient();
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('plan')
+    .eq('id', session.user.id)
+    .single();
+  const plan = ((profile?.plan ?? 'free') as Plan);
+  const dailyLimit = getLimit(plan, 'ai_parses_per_day');
+  const rl = checkRateLimit(`parse-food:${session.user.id}`, dailyLimit);
+  if (!rl.allowed) {
+    const resetHours = Math.ceil((rl.resetAt - Date.now()) / 3_600_000);
+    return NextResponse.json(
+      { error: `Daily AI limit reached (${dailyLimit}/day on free plan). Resets in ~${resetHours}h. Upgrade to Pro for unlimited.` },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': String(dailyLimit),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': String(Math.floor(rl.resetAt / 1000)),
+          'Retry-After': String(resetHours * 3600),
+        },
+      }
+    );
   }
 
   // ── Sanitize input ────────────────────────────────────────
