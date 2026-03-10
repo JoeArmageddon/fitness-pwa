@@ -10,6 +10,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
 import { supabase } from '@/lib/supabase';
+import { useAppStore } from '@/lib/store';
 import { calculateRecoveryScore } from '@/lib/ai';
 import { cn, today, recoveryLabel, formatDateShort } from '@/lib/utils';
 import { toast } from '@/components/ui/toaster';
@@ -124,6 +125,7 @@ function RecoveryRing({ score }: { score: number }) {
 // ── Main Recovery Page ─────────────────────────────────────
 
 export default function RecoveryPage() {
+  const { user } = useAppStore();
   const [form, setForm] = useState({
     sleep_hours: 7,
     sleep_quality: 3,
@@ -181,6 +183,7 @@ export default function RecoveryPage() {
       ...form,
       recovery_score: recoveryScore,
       notes: form.notes || null,
+      user_id: user!.id,
     };
 
     const { error } = todayLog

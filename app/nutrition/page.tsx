@@ -356,7 +356,7 @@ function SearchModal({ isOpen, onClose, onAdd }: {
 
 // ── Main Page ──────────────────────────────────────────────
 export default function NutritionPage() {
-  const { nutritionGoal } = useAppStore();
+  const { nutritionGoal, user } = useAppStore();
   const [entries, setEntries] = useState<MealEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAI, setShowAI] = useState(false);
@@ -378,7 +378,7 @@ export default function NutritionPage() {
 
   const addEntries = async (items: Array<{ name: string; grams: number; cal: number; protein: number; carbs: number; fat: number }>, mealType: MealType = 'lunch') => {
     for (const item of items) {
-      const entry = { date: today(), meal_type: mealType, food_name: item.name, quantity_g: item.grams, calories: item.cal, protein: item.protein, carbs: item.carbs, fat: item.fat };
+      const entry = { date: today(), meal_type: mealType, food_name: item.name, quantity_g: item.grams, calories: item.cal, protein: item.protein, carbs: item.carbs, fat: item.fat, user_id: user!.id };
       const { data } = await supabase.from('meal_entries').insert(entry).select().single();
       if (data) setEntries(prev => [...prev, data as MealEntry]);
     }

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { TrendingDown, TrendingUp, Minus, Scale, Camera, Plus, X } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/lib/supabase';
+import { useAppStore } from '@/lib/store';
 import { today, formatDateShort, formatDate, getLastNDays, movingAverage } from '@/lib/utils';
 import { toast } from '@/components/ui/toaster';
 import type { BodyWeight } from '@/types';
@@ -22,6 +23,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function BodyPage() {
+  const { user } = useAppStore();
   const [weights, setWeights] = useState<BodyWeight[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [inputWeight, setInputWeight] = useState('');
@@ -82,8 +84,9 @@ export default function BodyPage() {
         date: today(),
         weight_kg: parseFloat(inputWeight),
         body_fat_pct: inputBf ? parseFloat(inputBf) : null,
+        user_id: user!.id,
       };
-      await supabase.from('body_weights').upsert(payload, { onConflict: 'date' });
+      await supabase.from('body_weights').upsert(payload, { onConflict: 'user_id,date' });
       setInputWeight(''); setInputBf('');
       setShowAdd(false);
       toast('Weight logged!', 'success');
@@ -96,7 +99,7 @@ export default function BodyPage() {
     const { error } = await supabase.storage.from('progress-photos').upload(path, file);
     if (error) { toast('Upload failed', 'error'); return; }
     const { data: url } = supabase.storage.from('progress-photos').getPublicUrl(path);
-    await supabase.from('progress_photos').insert({ date: today(), storage_path: url.publicUrl });
+    await supabase.from('progress_photos').insert({ date: today(), storage_path: url.publicUrl, user_id: user!.id });
     toast('Photo saved!', 'success');
     loadPhotos();
   };

@@ -99,7 +99,7 @@ function ProgramCard({ program, isActive, onActivate, onDelete }: {
 }
 
 function ParseModal({ isOpen, onClose, onSaved, currentCount }: { isOpen: boolean; onClose: () => void; onSaved: () => void; currentCount: number }) {
-  const { plan } = useAppStore();
+  const { plan, user } = useAppStore();
   const [text, setText] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -129,7 +129,7 @@ function ParseModal({ isOpen, onClose, onSaved, currentCount }: { isOpen: boolea
     setSaving(true);
     try {
       const { data: prog, error } = await supabase.from('programs')
-        .insert({ name, mode: 'fixed', is_active: false }).select('id').single();
+        .insert({ name, mode: 'fixed', is_active: false, user_id: user!.id }).select('id').single();
       if (error) throw error;
       for (let di = 0; di < parsed.data.days.length; di++) {
         const day = parsed.data.days[di];

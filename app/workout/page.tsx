@@ -144,7 +144,7 @@ function AddExerciseModal({ isOpen, onClose, onAdd }: { isOpen: boolean; onClose
 }
 
 export default function WorkoutPage() {
-  const { activeWorkout, startWorkout, addSet, updateSet, removeSet, finishWorkout, discardWorkout, activeProgram } = useAppStore();
+  const { activeWorkout, startWorkout, addSet, updateSet, removeSet, finishWorkout, discardWorkout, activeProgram, user } = useAppStore();
   const [groups, setGroups] = useState<Array<{ name: string; muscle: MuscleGroup; targetSets?: number; targetReps?: string; indices: number[] }>>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [recentLogs, setRecentLogs] = useState<WorkoutLog[]>([]);
@@ -194,11 +194,11 @@ export default function WorkoutPage() {
     setSaving(true);
     try {
       const { data: row, error } = await supabase.from('workout_logs')
-        .insert({ date: log.date, program_day_id: log.program_day_id ?? null, day_name: log.day_name ?? null, duration_minutes: log.duration_minutes })
+        .insert({ date: log.date, program_day_id: log.program_day_id ?? null, day_name: log.day_name ?? null, duration_minutes: log.duration_minutes, user_id: user!.id })
         .select('id').single();
       if (error) throw error;
       await supabase.from('workout_sets').insert(log.sets.map(s => ({
-        workout_log_id: row.id, exercise_name: s.exercise_name, set_number: s.set_number, reps: s.reps, weight: s.weight, rpe: s.rpe ?? null, completed: s.completed
+        workout_log_id: row.id, exercise_name: s.exercise_name, set_number: s.set_number, reps: s.reps, weight: s.weight, rpe: s.rpe ?? null, completed: s.completed, user_id: user!.id
       })));
       toast('Workout saved! 💪', 'success');
     } catch { toast('Saved offline', 'warning'); } finally { setSaving(false); }
