@@ -1,6 +1,6 @@
 {
   "packageId": "com.apexfitness.app",
-  "host": "YOUR_VERCEL_URL.vercel.app",
+  "host": "fitness-pwa-neon.vercel.app",
   "name": "Apex",
   "launcherName": "Apex",
   "display": "standalone",
@@ -12,10 +12,10 @@
   "backgroundColor": "#060608",
   "enableNotifications": false,
   "startUrl": "/",
-  "iconUrl": "https://YOUR_VERCEL_URL.vercel.app/icons/icon-512.png",
-  "maskableIconUrl": "https://YOUR_VERCEL_URL.vercel.app/icons/icon-512.png",
-  "monochromeIconUrl": "https://YOUR_VERCEL_URL.vercel.app/icons/icon-512.png",
-  "manifestUrl": "https://YOUR_VERCEL_URL.vercel.app/manifest.json",
+  "iconUrl": "https://fitness-pwa-neon.vercel.app/icons/icon-512.png",
+  "maskableIconUrl": "https://fitness-pwa-neon.vercel.app/icons/icon-512.png",
+  "monochromeIconUrl": "https://fitness-pwa-neon.vercel.app/icons/icon-512.png",
+  "manifestUrl": "https://fitness-pwa-neon.vercel.app/manifest.json",
   "shortcuts": [],
   "signing": {
     "keystore": "./fitness-os.keystore",
@@ -24,7 +24,7 @@
     "storepassword": "CHANGE_ME"
   },
   "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://YOUR_VERCEL_URL.vercel.app/manifest.json",
+  "webManifestUrl": "https://fitness-pwa-neon.vercel.app/manifest.json",
   "fallbackType": "customtabs",
   "features": {},
   "alphaDependencies": {},
