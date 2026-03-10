@@ -399,7 +399,7 @@ export default function NutritionPage() {
   const mealGroups = MEAL_TYPES.map(t => ({ type: t, entries: entries.filter(e => e.meal_type === t) })).filter(g => g.entries.length > 0);
 
   return (
-    <div className="pb-4">
+    <div className="pb-nav">
       <div className="page-header">
         <div className="flex items-center justify-between">
           <h1 className="page-title">Nutrition</h1>

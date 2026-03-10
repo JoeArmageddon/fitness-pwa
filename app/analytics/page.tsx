@@ -470,7 +470,7 @@ export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<AnalyticsTab>('strength');
 
   return (
-    <div className="pb-4">
+    <div className="pb-nav">
       {/* Header — fully dark */}
       <div className="page-header">
         <h1 className="page-title mb-3">Analytics</h1>

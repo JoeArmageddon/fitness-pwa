@@ -315,6 +315,8 @@
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
   .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 12px); }
   .pt-safe { padding-top: env(safe-area-inset-top); }
+  /* Clears the fixed bottom nav (58px) + safe area + 16px breathing room */
+  .pb-nav { padding-bottom: calc(58px + env(safe-area-inset-bottom) + 16px); }
 }
 
 /* ── Keyframes ──────────────────────────────────────────── */

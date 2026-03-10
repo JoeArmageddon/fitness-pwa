@@ -208,7 +208,7 @@ export default function WorkoutPage() {
   const totalSets = activeWorkout.sets.length;
 
   return (
-    <div className="pb-4">
+    <div className="pb-nav">
       <div className="page-header">
         <div className="flex items-center justify-between">
           <h1 className="page-title">Workout</h1>

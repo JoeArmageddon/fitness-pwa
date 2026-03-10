@@ -184,7 +184,7 @@ export default function LeaderboardPage() {
   const myRank = currentGroup?.members.findIndex(m => m.user_id === user?.id) ?? -1;
 
   return (
-    <div className="pb-4">
+    <div className="pb-nav">
       <div className="page-header">
         <div className="flex items-center justify-between">
           <h1 className="page-title">Leaderboard</h1>

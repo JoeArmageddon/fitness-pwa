@@ -212,7 +212,7 @@ export default function RecoveryPage() {
     }));
 
   return (
-    <div className="pb-4">
+    <div className="pb-nav">
       {/* Header */}
       <div className="px-4 pt-14 pb-4 bg-white/80 backdrop-blur-xl sticky top-0 z-40 border-b border-border/30">
         <h1 className="text-2xl font-bold tracking-tight">Recovery</h1>

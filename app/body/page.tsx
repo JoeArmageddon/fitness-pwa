@@ -105,7 +105,7 @@ export default function BodyPage() {
   const trendColor = !delta ? 'text-white/40' : delta < 0 ? 'text-green-400' : 'text-red-400';
 
   return (
-    <div className="pb-4">
+    <div className="pb-nav">
       <div className="page-header">
         <div className="flex items-center justify-between">
           <h1 className="page-title">Body</h1>

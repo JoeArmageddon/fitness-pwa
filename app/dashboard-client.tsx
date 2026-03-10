@@ -99,7 +99,7 @@ export default function DashboardClient() {
   const recPct = todayData.recovery;
 
   return (
-    <div className="pb-4">
+    <div className="pb-nav">
       {/* Header */}
       <div className="page-header">
         <div className="flex items-center justify-between">

@@ -44,28 +44,27 @@ export function BottomNav() {
               className={cn(
                 'flex flex-col items-center justify-center gap-[3px] flex-1 h-full',
                 'transition-all duration-150 active:scale-[0.85]',
-                'min-w-0 relative',
+                'min-w-0',
               )}
             >
-              {/* Active background pill */}
-              {active && (
-                <span
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl bg-blue-500/15 animate-scale-in"
-                />
-              )}
-
-              <Icon
-                size={20}
-                strokeWidth={active ? 2.4 : 1.6}
-                className={cn(
-                  'relative z-10 transition-colors duration-150',
-                  active ? 'text-[#0A84FF]' : 'text-white/35'
+              {/* Icon wrapped in fixed container so pill always centers on icon */}
+              <div className="relative flex items-center justify-center w-10 h-10">
+                {active && (
+                  <span className="absolute inset-0 rounded-2xl bg-blue-500/15 animate-scale-in" />
                 )}
-              />
+                <Icon
+                  size={20}
+                  strokeWidth={active ? 2.4 : 1.6}
+                  className={cn(
+                    'relative z-10 transition-colors duration-150',
+                    active ? 'text-[#0A84FF]' : 'text-white/35'
+                  )}
+                />
+              </div>
 
               {/* Label: only show for active tab */}
               <span className={cn(
-                'text-[9px] font-bold relative z-10 transition-all duration-150 leading-none',
+                'text-[9px] font-bold transition-all duration-150 leading-none',
                 active ? 'text-[#0A84FF] opacity-100' : 'opacity-0 h-0 overflow-hidden'
               )}>
                 {label}
