@@ -52,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="bg-[#060608] text-white min-h-screen overflow-x-hidden">
         <AuthProvider>
-          <main className="max-w-lg mx-auto pb-24">
+          <main className="max-w-lg mx-auto">
             {children}
           </main>
           <BottomNav />

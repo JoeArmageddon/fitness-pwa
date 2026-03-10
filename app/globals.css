@@ -107,7 +107,8 @@
     position: sticky;
     top: 0;
     z-index: 40;
-    padding: 54px 16px 14px;
+    /* Safe-area aware top padding: accommodates notch, Dynamic Island, or nothing */
+    padding: max(54px, calc(env(safe-area-inset-top) + 14px)) 16px 14px;
   }
 
   .page-title {
@@ -274,7 +275,8 @@
     -webkit-backdrop-filter: blur(40px);
     border: 1px solid rgba(255,255,255,0.10);
     border-radius: 28px 28px 0 0;
-    padding: 0 20px 40px;
+    /* Bottom pad clears iOS home indicator */
+    padding: 0 20px max(40px, calc(env(safe-area-inset-bottom) + 24px));
     max-height: 92vh;
     overflow-y: auto;
   }
