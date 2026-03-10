@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <rect width="100" height="100" rx="22" fill="#08080F"/>
+  <defs>
+    <linearGradient id="g" x1="30%" y1="90%" x2="70%" y2="0%">
+      <stop offset="0%" stop-color="#0A84FF"/>
+      <stop offset="100%" stop-color="#5E5CE6"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="48%" r="40%">
+      <stop offset="0%" stop-color="rgba(10,132,255,0.3)"/>
+      <stop offset="100%" stop-color="rgba(10,132,255,0)"/>
+    </radialGradient>
+  </defs>
+  <!-- Glow -->
+  <ellipse cx="50" cy="54" rx="38" ry="28" fill="url(#glow)"/>
+  <!-- Apex peak — "A" letterform as mountain summit -->
+  <path d="M50 17 L84 76 H66 L50 45 L34 76 H16 Z" fill="url(#g)"/>
+</svg>

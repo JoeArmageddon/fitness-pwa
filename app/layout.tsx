@@ -2,12 +2,23 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/components/providers/auth-provider';
 
 export const metadata: Metadata = {
-  title: 'Fitness OS',
+  title: 'Apex',
   description: 'Your Personal Performance Operating System',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Fitness OS' },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Apex',
+    startupImage: [
+      { url: '/splash/splash-1290x2796.png', media: '(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)' },
+      { url: '/splash/splash-1179x2556.png', media: '(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)' },
+      { url: '/splash/splash-1170x2532.png', media: '(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)' },
+      { url: '/splash/splash-750x1334.png', media: '(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)' },
+    ],
+  },
   other: { 'mobile-web-app-capable': 'yes' },
 };
 
@@ -23,15 +34,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="dark">
       <head>
+        <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className="bg-[#060608] text-white min-h-screen overflow-x-hidden">
-        <main className="max-w-lg mx-auto pb-24">
-          {children}
-        </main>
-        <BottomNav />
-        <Toaster />
+        <AuthProvider>
+          <main className="max-w-lg mx-auto pb-24">
+            {children}
+          </main>
+          <BottomNav />
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

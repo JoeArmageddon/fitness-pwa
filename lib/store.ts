@@ -9,14 +9,12 @@ import type {
   WorkoutLog,
   WorkoutSet,
   MealEntry,
-  BodyWeight,
-  RecoveryLog,
   Program,
   DailyNutritionGoal,
   ProgressAlert,
+  Profile,
+  Plan,
 } from '@/types';
-
-// ── Offline Queue for unsynced actions ────────────────────
 
 interface Unsynced {
   id: string;
@@ -26,9 +24,15 @@ interface Unsynced {
   created_at: string;
 }
 
-// ── App State ──────────────────────────────────────────────
-
 interface AppState {
+  // Auth
+  user: { id: string; email: string } | null;
+  profile: Profile | null;
+  plan: Plan;
+  setUser: (user: AppState['user']) => void;
+  setProfile: (profile: Profile | null) => void;
+  setPlan: (plan: Plan) => void;
+
   // Connectivity
   isOnline: boolean;
   setIsOnline: (v: boolean) => void;
@@ -51,7 +55,7 @@ interface AppState {
   nutritionGoal: DailyNutritionGoal;
   setNutritionGoal: (goal: DailyNutritionGoal) => void;
 
-  // Today's data (cached)
+  // Today's data (cached, not persisted)
   todayNutrition: {
     entries: MealEntry[];
     total_calories: number;
@@ -77,22 +81,23 @@ interface AppState {
   clearQueue: () => void;
 }
 
-// ── Store ──────────────────────────────────────────────────
-
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
+      // Auth
+      user: null,
+      profile: null,
+      plan: 'free',
+      setUser: (user) => set({ user }),
+      setProfile: (profile) => set({ profile, plan: profile?.plan ?? 'free' }),
+      setPlan: (plan) => set({ plan }),
+
       // Connectivity
       isOnline: true,
       setIsOnline: (v) => set({ isOnline: v }),
 
       // Active Workout
-      activeWorkout: {
-        isActive: false,
-        log: {},
-        sets: [],
-        startTime: null,
-      },
+      activeWorkout: { isActive: false, log: {}, sets: [], startTime: null },
 
       startWorkout: (programDayId, dayName) =>
         set({
@@ -110,10 +115,7 @@ export const useAppStore = create<AppState>()(
 
       addSet: (newSet) =>
         set((state) => ({
-          activeWorkout: {
-            ...state.activeWorkout,
-            sets: [...state.activeWorkout.sets, newSet],
-          },
+          activeWorkout: { ...state.activeWorkout, sets: [...state.activeWorkout.sets, newSet] },
         })),
 
       updateSet: (index, updatedSet) =>
@@ -124,20 +126,18 @@ export const useAppStore = create<AppState>()(
         }),
 
       removeSet: (index) =>
-        set((state) => {
-          const sets = state.activeWorkout.sets.filter((_, i) => i !== index);
-          return { activeWorkout: { ...state.activeWorkout, sets } };
-        }),
+        set((state) => ({
+          activeWorkout: {
+            ...state.activeWorkout,
+            sets: state.activeWorkout.sets.filter((_, i) => i !== index),
+          },
+        })),
 
       finishWorkout: () => {
         const { activeWorkout } = get();
         if (!activeWorkout.isActive || !activeWorkout.sets.length) return null;
-
-        const startTime = activeWorkout.startTime
-          ? new Date(activeWorkout.startTime)
-          : new Date();
+        const startTime = activeWorkout.startTime ? new Date(activeWorkout.startTime) : new Date();
         const duration = Math.round((Date.now() - startTime.getTime()) / 60000);
-
         const log: WorkoutLog = {
           id: crypto.randomUUID(),
           date: activeWorkout.log.date ?? new Date().toISOString().split('T')[0],
@@ -147,30 +147,17 @@ export const useAppStore = create<AppState>()(
           sets: activeWorkout.sets as WorkoutSet[],
           created_at: new Date().toISOString(),
         };
-
-        set({
-          activeWorkout: { isActive: false, log: {}, sets: [], startTime: null },
-        });
-
+        set({ activeWorkout: { isActive: false, log: {}, sets: [], startTime: null } });
         return log;
       },
 
       discardWorkout: () =>
-        set({
-          activeWorkout: { isActive: false, log: {}, sets: [], startTime: null },
-        }),
+        set({ activeWorkout: { isActive: false, log: {}, sets: [], startTime: null } }),
 
-      // Nutrition Goal
-      nutritionGoal: {
-        calories: 2000,
-        protein: 150,
-        carbs: 200,
-        fat: 65,
-        fiber: 30,
-      },
+      // Nutrition
+      nutritionGoal: { calories: 2000, protein: 150, carbs: 200, fat: 65, fiber: 30 },
       setNutritionGoal: (goal) => set({ nutritionGoal: goal }),
 
-      // Today's Nutrition
       todayNutrition: {
         entries: [],
         total_calories: 0,
@@ -180,7 +167,7 @@ export const useAppStore = create<AppState>()(
       },
       setTodayNutrition: (data) => set({ todayNutrition: data }),
 
-      // Active Program
+      // Program
       activeProgram: null,
       setActiveProgram: (program) => set({ activeProgram: program }),
 
@@ -189,9 +176,7 @@ export const useAppStore = create<AppState>()(
       addAlert: (alert) =>
         set((state) => ({ alerts: [alert, ...state.alerts].slice(0, 10) })),
       dismissAlert: (index) =>
-        set((state) => ({
-          alerts: state.alerts.filter((_, i) => i !== index),
-        })),
+        set((state) => ({ alerts: state.alerts.filter((_, i) => i !== index) })),
 
       // Offline Queue
       unsyncedQueue: [],
@@ -203,9 +188,7 @@ export const useAppStore = create<AppState>()(
           ],
         })),
       removeFromQueue: (id) =>
-        set((state) => ({
-          unsyncedQueue: state.unsyncedQueue.filter((i) => i.id !== id),
-        })),
+        set((state) => ({ unsyncedQueue: state.unsyncedQueue.filter((i) => i.id !== id) })),
       clearQueue: () => set({ unsyncedQueue: [] }),
     }),
     {
@@ -217,6 +200,7 @@ export const useAppStore = create<AppState>()(
         alerts: state.alerts,
         unsyncedQueue: state.unsyncedQueue,
         activeWorkout: state.activeWorkout,
+        plan: state.plan,
       }),
     }
   )

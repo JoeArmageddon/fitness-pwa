@@ -2,21 +2,26 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Dumbbell, UtensilsCrossed, User, HeartPulse, BarChart3, Calendar } from 'lucide-react';
+import { LayoutDashboard, Dumbbell, UtensilsCrossed, User, HeartPulse, BarChart3, Calendar, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const tabs = [
-  { href: '/',          label: 'Home',      icon: LayoutDashboard },
-  { href: '/workout',   label: 'Workout',   icon: Dumbbell        },
-  { href: '/nutrition', label: 'Nutrition', icon: UtensilsCrossed },
-  { href: '/body',      label: 'Body',      icon: User            },
-  { href: '/recovery',  label: 'Recovery',  icon: HeartPulse      },
-  { href: '/analytics', label: 'Stats',     icon: BarChart3       },
-  { href: '/program',   label: 'Program',   icon: Calendar        },
+  { href: '/',            label: 'Home',    icon: LayoutDashboard },
+  { href: '/workout',     label: 'Workout', icon: Dumbbell        },
+  { href: '/nutrition',   label: 'Nutrition', icon: UtensilsCrossed },
+  { href: '/body',        label: 'Body',    icon: User            },
+  { href: '/recovery',    label: 'Recovery', icon: HeartPulse     },
+  { href: '/analytics',   label: 'Stats',   icon: BarChart3       },
+  { href: '/program',     label: 'Program', icon: Calendar        },
+  { href: '/leaderboard', label: 'Ranks',   icon: Trophy          },
 ];
+
+const HIDDEN_ROUTES = ['/auth', '/onboarding'];
 
 export function BottomNav() {
   const pathname = usePathname();
+
+  if (HIDDEN_ROUTES.includes(pathname)) return null;
 
   return (
     <nav

@@ -4,7 +4,6 @@ import { Sparkles, Plus, X, Search, ChevronDown, ChevronUp, Utensils, Zap, Targe
 import { supabase } from '@/lib/supabase';
 import { useAppStore } from '@/lib/store';
 import { cn, today, formatDate } from '@/lib/utils';
-import { searchFoods } from '@/lib/food-database';
 import { toast } from '@/components/ui/toaster';
 import type { MealEntry } from '@/types';
 
@@ -106,8 +105,8 @@ function AIParseModal({ isOpen, onClose, onAdd }: {
 
   if (!isOpen) return null;
 
-  const sourceColor = result?.source === 'gemini' ? '#BF5AF2' : '#0A84FF';
-  const sourceLabel = result?.source === 'gemini' ? 'Gemini AI' : 'Groq AI';
+  const sourceColor = result?.source === 'local' ? '#30D158' : '#0A84FF';
+  const sourceLabel = result?.source === 'local' ? 'Local DB' : 'Groq AI';
 
   return (
     <div className="fixed inset-0 z-50 flex items-end">
@@ -170,7 +169,7 @@ function AIParseModal({ isOpen, onClose, onAdd }: {
                       <span>{step}</span>
                     </div>
                   ))}
-                  <p className="text-xs text-white/35 mt-3">The Gemini free tier gives you 1,500 AI food parses per day — more than enough.</p>
+                  <p className="text-xs text-white/35 mt-3">Add your GROQ_API_KEY to .env.local to enable AI food parsing.</p>
                 </div>
               )}
 
@@ -248,7 +247,20 @@ function SearchModal({ isOpen, onClose, onAdd }: {
   const [grams, setGrams] = useState(100);
   const [mealType, setMealType] = useState<MealType>('lunch');
   const [selected, setSelected] = useState<any>(null);
-  const results = query.length > 1 ? searchFoods(query) : [];
+  const [results, setResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (query.length < 2) { setResults([]); return; }
+    setSearching(true);
+    const ctrl = new AbortController();
+    fetch(`/api/nutrition/search?q=${encodeURIComponent(query)}`, { signal: ctrl.signal })
+      .then(r => r.json())
+      .then(d => setResults(d.results ?? []))
+      .catch(() => {})
+      .finally(() => setSearching(false));
+    return () => ctrl.abort();
+  }, [query]);
 
   if (!isOpen) return null;
   const calc = (field: string) => selected ? Math.round((selected[`${field}_per_100g`] * grams) / 100 * 10) / 10 : 0;
@@ -262,6 +274,12 @@ function SearchModal({ isOpen, onClose, onAdd }: {
         <input type="text" value={query} onChange={e => { setQuery(e.target.value); setSelected(null); }}
           placeholder="Search foods..." className="input-apple mb-3" autoFocus />
 
+        {searching && (
+          <div className="flex justify-center py-3">
+            <span className="w-5 h-5 border-2 border-white/20 border-t-blue-400 rounded-full animate-spin" />
+          </div>
+        )}
+
         {results.length > 0 && !selected && (
           <div className="space-y-1 mb-4 max-h-52 overflow-y-auto">
             {results.map(f => (
@@ -269,7 +287,10 @@ function SearchModal({ isOpen, onClose, onAdd }: {
                 className="w-full flex items-center gap-3 p-3 bg-white/[0.04] border border-white/[0.07] rounded-xl text-left hover:bg-white/[0.07] transition-all">
                 <div className="flex-1">
                   <p className="font-semibold text-white text-sm">{f.name}</p>
-                  <p className="text-xs text-white/35">{f.serving_size_g ? `${f.serving_size_g}g serving` : 'per 100g'}</p>
+                  <p className="text-xs text-white/35">
+                    {f.serving_size_g ? `${f.serving_size_g}g serving` : 'per 100g'}
+                    {f.source === 'openfoodfacts' ? ' · Web' : ''}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold text-white">{f.calories_per_100g}</p>

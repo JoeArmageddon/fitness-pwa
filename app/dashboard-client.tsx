@@ -46,7 +46,7 @@ function QuickAction({ href, icon: Icon, label, color, sublabel }: {
 export default function DashboardClient() {
   const { nutritionGoal, activeWorkout, alerts, dismissAlert } = useAppStore();
   const [todayData, setTodayData] = useState({ calories: 0, protein: 0, workouts: 0, recovery: 0 });
-  const [weekData, setWeekData] = useState({ workouts: 0, avgRecovery: 0, weightChange: 0 });
+  const [weekData, setWeekData] = useState({ workouts: 0, avgRecovery: 0, weightChange: 0, streak: 0 });
   const [greeting, setGreeting] = useState('');
   const [loaded, setLoaded] = useState(false);
 
@@ -59,12 +59,13 @@ export default function DashboardClient() {
       const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
       const weekStr = weekAgo.toISOString().split('T')[0];
 
-      const [nutr, rec, wkWkt, wkRec, weights] = await Promise.all([
+      const [nutr, rec, wkWkt, wkRec, weights, allLogs] = await Promise.all([
         supabase.from('meal_entries').select('calories, protein').eq('date', t),
         supabase.from('recovery_logs').select('recovery_score').eq('date', t).maybeSingle(),
         supabase.from('workout_logs').select('id').gte('date', weekStr),
         supabase.from('recovery_logs').select('recovery_score').gte('date', weekStr),
         supabase.from('body_weights').select('weight_kg, date').gte('date', weekStr).order('date'),
+        supabase.from('workout_logs').select('date').order('date', { ascending: false }).limit(90),
       ]);
 
       const totalCal = nutr.data?.reduce((s, e) => s + e.calories, 0) ?? 0;
@@ -73,8 +74,21 @@ export default function DashboardClient() {
       const wts = weights.data ?? [];
       const wtChange = wts.length >= 2 ? +(wts[wts.length-1].weight_kg - wts[0].weight_kg).toFixed(1) : 0;
 
+      const logDates = new Set((allLogs.data ?? []).map((w: any) => w.date));
+      let streak = 0;
+      const streakDate = new Date();
+      if (!logDates.has(streakDate.toISOString().split('T')[0])) {
+        streakDate.setDate(streakDate.getDate() - 1);
+      }
+      while (streak < 90) {
+        const ds = streakDate.toISOString().split('T')[0];
+        if (!logDates.has(ds)) break;
+        streak++;
+        streakDate.setDate(streakDate.getDate() - 1);
+      }
+
       setTodayData({ calories: Math.round(totalCal), protein: Math.round(totalProt), workouts: 0, recovery: rec.data?.recovery_score ?? 0 });
-      setWeekData({ workouts: wkWkt.data?.length ?? 0, avgRecovery: avgRec, weightChange: wtChange });
+      setWeekData({ workouts: wkWkt.data?.length ?? 0, avgRecovery: avgRec, weightChange: wtChange, streak });
       setLoaded(true);
     };
     loadData();
@@ -160,10 +174,11 @@ export default function DashboardClient() {
 
         {/* Week stats */}
         {loaded && (
-          <div className="grid grid-cols-3 gap-3 stagger">
+          <div className="grid grid-cols-2 gap-3 stagger">
             {[
               { label: 'Workouts', value: weekData.workouts, sublabel: 'this week', color: '#0A84FF' },
               { label: 'Avg Recovery', value: weekData.avgRecovery || '—', sublabel: 'this week', color: '#BF5AF2' },
+              { label: 'Streak 🔥', value: weekData.streak ? `${weekData.streak}d` : '—', sublabel: 'days in a row', color: '#FF9F0A' },
               { label: 'Weight Δ', value: weekData.weightChange !== 0 ? `${weekData.weightChange > 0 ? '+' : ''}${weekData.weightChange}kg` : 'Stable', sublabel: '7 days', color: weekData.weightChange < 0 ? '#30D158' : weekData.weightChange > 0 ? '#FF453A' : '#FF9F0A' },
             ].map(({ label, value, sublabel, color }) => (
               <div key={label} className="card text-center animate-fade-up">

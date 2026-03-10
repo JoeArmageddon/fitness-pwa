@@ -20,6 +20,10 @@
     --orange:  #FF9F0A;
     --red:     #FF453A;
     --purple:  #BF5AF2;
+    --danger:  #FF453A;
+    --success: #30D158;
+    --warning: #FF9F0A;
+    --pro-gradient: linear-gradient(135deg, #F5A623 0%, #E27D0A 100%);
 
     /* Tailwind compat */
     --background: 220 20% 4%;
@@ -280,6 +284,28 @@
     background: rgba(255,255,255,0.15);
     border-radius: 2px;
     margin: 12px auto 20px;
+  }
+
+  .upgrade-banner {
+    background: linear-gradient(135deg, rgba(245,166,35,0.12) 0%, rgba(226,125,10,0.08) 100%);
+    border: 1px solid rgba(245,166,35,0.25);
+    border-radius: 18px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .badge-pro {
+    background: var(--pro-gradient);
+    color: #000;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    display: inline-block;
   }
 }
 

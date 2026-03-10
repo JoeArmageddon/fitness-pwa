@@ -1,5 +1,5 @@
 // ============================================================
-// GLOBAL TYPE DEFINITIONS - Personal Fitness Tracking PWA
+// GLOBAL TYPE DEFINITIONS - Fitness OS
 // ============================================================
 
 // ── Workout Types ──────────────────────────────────────────
@@ -26,8 +26,8 @@ export interface WorkoutSet {
   exercise_name: string;
   set_number: number;
   reps: number;
-  weight: number; // in kg
-  rpe?: number; // 1-10
+  weight: number;
+  rpe?: number;
   completed: boolean;
   notes?: string;
 }
@@ -61,7 +61,7 @@ export interface ProgramExercise {
   name: string;
   muscle_group: MuscleGroup;
   sets: number;
-  reps: string; // "8-12" or "10"
+  reps: string;
   rest_seconds?: number;
   notes?: string;
   order_index: number;
@@ -70,8 +70,8 @@ export interface ProgramExercise {
 export interface ProgramDay {
   id: string;
   program_id: string;
-  day_name: string; // "Monday", "Push Day", etc.
-  focus?: string; // "Chest + Triceps"
+  day_name: string;
+  focus?: string;
   exercises: ProgramExercise[];
   order_index: number;
 }
@@ -87,6 +87,8 @@ export interface Program {
 
 // ── Nutrition Types ────────────────────────────────────────
 
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'pre_workout' | 'post_workout';
+
 export interface FoodItem {
   id: string;
   name: string;
@@ -97,6 +99,7 @@ export interface FoodItem {
   fat_per_100g: number;
   fiber_per_100g?: number;
   is_custom?: boolean;
+  source?: 'local' | 'openfoodfacts' | 'custom';
   serving_size_g?: number;
   serving_label?: string;
 }
@@ -104,7 +107,7 @@ export interface FoodItem {
 export interface MealEntry {
   id: string;
   date: string;
-  meal_type: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'pre_workout' | 'post_workout';
+  meal_type: MealType;
   food_id: string;
   food_name: string;
   quantity_g: number;
@@ -118,10 +121,10 @@ export interface MealEntry {
 
 export interface DailyNutritionGoal {
   calories: number;
-  protein: number; // g
-  carbs: number; // g
-  fat: number; // g
-  fiber?: number; // g
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber?: number;
 }
 
 export interface DailyNutritionSummary {
@@ -176,7 +179,7 @@ export interface RecoveryLog {
   mood: 1 | 2 | 3 | 4 | 5;
   soreness: 1 | 2 | 3 | 4 | 5;
   energy_level: 1 | 2 | 3 | 4 | 5;
-  recovery_score: number; // 0-100 calculated
+  recovery_score: number;
   notes?: string;
   created_at: string;
 }
@@ -196,15 +199,19 @@ export interface ParsedWorkoutProgram {
   }[];
 }
 
+export interface ParsedFoodItem {
+  name: string;
+  quantity_g: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber?: number;
+  source?: 'database' | 'ai' | 'openfoodfacts';
+}
+
 export interface ParsedFoodEntry {
-  items: {
-    name: string;
-    quantity_g: number;
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  }[];
+  items: ParsedFoodItem[];
   total_calories: number;
   total_protein: number;
   total_carbs: number;
@@ -214,9 +221,57 @@ export interface ParsedFoodEntry {
 
 export interface AIResponse<T> {
   data: T | null;
-  source: 'gemini' | 'groq' | 'local';
+  source: 'groq' | 'local' | 'openfoodfacts';
   confidence: 'high' | 'medium' | 'low';
   error?: string;
+}
+
+// ── Auth & User Types ──────────────────────────────────────
+
+export type Plan = 'free' | 'pro';
+export type Goal = 'lose_fat' | 'build_muscle' | 'maintain' | 'athletic';
+export type Experience = 'beginner' | 'intermediate' | 'advanced';
+
+export interface Profile {
+  id: string;
+  display_name: string | null;
+  avatar_url: string | null;
+  plan: Plan;
+  height_cm: number | null;
+  weight_kg: number | null;
+  goal: Goal | null;
+  experience: Experience | null;
+  onboarded: boolean;
+  created_at: string;
+}
+
+// ── Social & Leaderboard Types ─────────────────────────────
+
+export interface Group {
+  id: string;
+  name: string;
+  invite_code: string;
+  created_by: string;
+  created_at: string;
+}
+
+export interface GroupMember {
+  group_id: string;
+  user_id: string;
+  joined_at: string;
+  profile?: Profile;
+}
+
+export interface LeaderboardEntry {
+  id: string;
+  user_id: string;
+  week_start: string;
+  workouts_count: number;
+  total_volume_kg: number;
+  streak_days: number;
+  points: number;
+  profile?: Profile;
+  rank?: number;
 }
 
 // ── Dashboard Types ────────────────────────────────────────
@@ -263,7 +318,7 @@ export interface VolumeDataPoint {
   date: string;
   muscle_group: MuscleGroup;
   total_sets: number;
-  total_volume: number; // weight × reps × sets
+  total_volume: number;
 }
 
 export interface WeightTrendPoint {

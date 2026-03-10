@@ -1,13 +1,22 @@
 {
-  "name": "Fitness OS",
-  "short_name": "Fitness OS",
-  "description": "Your Personal Performance Operating System",
+  "name": "Apex",
+  "short_name": "Apex",
+  "description": "Your Personal Performance Operating System — workouts, nutrition, recovery, and leaderboards.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "display_override": ["standalone", "fullscreen"],
+  "background_color": "#060608",
+  "theme_color": "#060608",
   "orientation": "portrait",
+  "scope": "/",
+  "lang": "en",
   "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
@@ -30,13 +39,41 @@
   "shortcuts": [
     {
       "name": "Log Workout",
+      "short_name": "Workout",
+      "description": "Start or log a workout session",
       "url": "/workout",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Log Food",
+      "short_name": "Nutrition",
+      "description": "Track your daily nutrition",
       "url": "/nutrition",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Leaderboard",
+      "short_name": "Ranks",
+      "description": "See your group leaderboard",
+      "url": "/leaderboard",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Apex Dashboard"
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.fitnessOS.app",
+      "id": "com.fitnessOS.app"
+    }
+  ],
+  "prefer_related_applications": false
 }

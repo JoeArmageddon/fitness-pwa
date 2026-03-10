@@ -2,10 +2,11 @@
 import { useState, useEffect } from 'react';
 import { Sparkles, Calendar, Dumbbell, Trash2, ChevronDown, ChevronUp, Copy, Play, Zap, Check } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { parseWorkoutText, inferMuscleGroup } from '@/lib/ai';
+import { inferMuscleGroup } from '@/lib/ai';
 import { useAppStore } from '@/lib/store';
 import { cn, muscleColor, muscleLabel } from '@/lib/utils';
 import { toast } from '@/components/ui/toaster';
+import { PLAN_LIMITS } from '@/lib/limits';
 import type { Program, MuscleGroup } from '@/types';
 
 const EXAMPLE = `Monday: Full Body Activation
@@ -97,18 +98,27 @@ function ProgramCard({ program, isActive, onActivate, onDelete }: {
   );
 }
 
-function ParseModal({ isOpen, onClose, onSaved }: { isOpen: boolean; onClose: () => void; onSaved: () => void }) {
+function ParseModal({ isOpen, onClose, onSaved, currentCount }: { isOpen: boolean; onClose: () => void; onSaved: () => void; currentCount: number }) {
+  const { plan } = useAppStore();
   const [text, setText] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [parsed, setParsed] = useState<any>(null);
+  const maxRoutines = PLAN_LIMITS[plan].max_routines;
+  const atLimit = currentCount >= maxRoutines;
 
   const handleParse = async () => {
     if (!text.trim()) return;
     setLoading(true);
     try {
-      const result = await parseWorkoutText(text);
+      const res = await fetch('/api/ai/parse-workout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error('Parse failed');
+      const result = await res.json();
       setParsed(result);
     } catch { toast('Parse failed', 'error'); }
     finally { setLoading(false); }
@@ -147,6 +157,11 @@ function ParseModal({ isOpen, onClose, onSaved }: { isOpen: boolean; onClose: ()
       <div className="absolute inset-0 bg-black/65 backdrop-blur-md" onClick={onClose} />
       <div className="relative w-full animate-slide-up sheet max-h-[92vh] overflow-y-auto">
         <div className="sheet-handle" />
+        {atLimit && (
+          <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl text-sm text-yellow-300 text-center">
+            Free plan: {maxRoutines} routine limit reached. <a href="/pricing" className="underline font-bold">Upgrade to Pro</a> for unlimited.
+          </div>
+        )}
         <div className="flex items-center gap-3 mb-5">
           <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
             <Sparkles size={20} className="text-purple-400" />
@@ -165,7 +180,7 @@ function ParseModal({ isOpen, onClose, onSaved }: { isOpen: boolean; onClose: ()
           placeholder={'Monday: Full Body\nGoblet Squat 3x12\nPush-Ups 3x10\n...'}
           className="input-apple min-h-[160px] resize-none text-sm font-mono" />
 
-        <button onClick={handleParse} disabled={!text.trim() || loading} className="btn-primary w-full mt-3">
+        <button onClick={handleParse} disabled={!text.trim() || loading || atLimit} className="btn-primary w-full mt-3">
           {loading ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Sparkles size={17} />}
           {loading ? 'Parsing...' : 'Parse Schedule'}
         </button>
@@ -293,7 +308,7 @@ export default function ProgramPage() {
         )}
       </div>
 
-      <ParseModal isOpen={showParse} onClose={() => setShowParse(false)} onSaved={loadPrograms} />
+      <ParseModal isOpen={showParse} onClose={() => setShowParse(false)} onSaved={loadPrograms} currentCount={programs.length} />
     </div>
   );
 }

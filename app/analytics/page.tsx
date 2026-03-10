@@ -8,6 +8,7 @@ import {
   ComposedChart,
 } from 'recharts';
 import { supabase } from '@/lib/supabase';
+import { useAppStore } from '@/lib/store';
 import { cn, formatDateShort, movingAverage, muscleColor, muscleLabel, getLastNDays } from '@/lib/utils';
 import { epley1RM } from '@/lib/ai';
 import type { MuscleGroup } from '@/types';
@@ -306,9 +307,10 @@ function BodyAnalytics() {
 
 // ── NUTRITION ──────────────────────────────────────────────
 function NutritionAnalytics() {
+  const { nutritionGoal } = useAppStore();
   const [data, setData] = useState<Array<{ date: string; calories: number; protein: number; carbs: number; fat: number }>>([]);
   const [loading, setLoading] = useState(true);
-  const GOAL_CAL = 2000;
+  const GOAL_CAL = nutritionGoal?.calories || 2000;
 
   useEffect(() => {
     const days = getLastNDays(30);

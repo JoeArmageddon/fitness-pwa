@@ -10,15 +10,24 @@ const withPWA = require('next-pwa')({
       handler: 'NetworkFirst',
       options: {
         cacheName: 'supabase-cache',
-        expiration: { maxEntries: 200, maxAgeSeconds: 86400 },
+        expiration: { maxEntries: 200, maxAgeSeconds: 1800 },
+        networkTimeoutSeconds: 5,
       },
     },
     {
-      urlPattern: /^\//,
+      urlPattern: /^\/api\/nutrition\/search/,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'food-search-cache',
+        expiration: { maxEntries: 100, maxAgeSeconds: 3600 },
+      },
+    },
+    {
+      urlPattern: /^\/(workout|nutrition|body|recovery|analytics|program|leaderboard)/,
       handler: 'StaleWhileRevalidate',
       options: {
         cacheName: 'pages-cache',
-        expiration: { maxEntries: 50, maxAgeSeconds: 86400 },
+        expiration: { maxEntries: 20, maxAgeSeconds: 86400 },
       },
     },
   ],

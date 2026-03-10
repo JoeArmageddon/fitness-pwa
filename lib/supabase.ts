@@ -1,27 +1,36 @@
 // ============================================================
-// SUPABASE CLIENT
+// SUPABASE BROWSER CLIENT
+// Uses @supabase/ssr for cookie-based session management
 // ============================================================
-import { createClient } from '@supabase/supabase-js';
+
+import { createBrowserClient } from '@supabase/ssr';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
-    'Missing Supabase environment variables. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local'
+    'Missing Supabase env vars. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY'
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    storageKey: 'fitness-pwa-auth',
-  },
-});
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
 // ── Database helper types ──────────────────────────────────
 
 export type Tables = {
+  profiles: {
+    id: string;
+    display_name: string | null;
+    avatar_url: string | null;
+    plan: 'free' | 'pro';
+    height_cm: number | null;
+    weight_kg: number | null;
+    goal: string | null;
+    experience: string | null;
+    onboarded: boolean;
+    created_at: string;
+  };
   exercises: {
     id: string;
     name: string;
@@ -33,6 +42,7 @@ export type Tables = {
   };
   workout_logs: {
     id: string;
+    user_id: string;
     date: string;
     program_day_id: string | null;
     day_name: string | null;
@@ -43,6 +53,7 @@ export type Tables = {
   };
   workout_sets: {
     id: string;
+    user_id: string;
     workout_log_id: string;
     exercise_id: string;
     exercise_name: string;
@@ -55,6 +66,7 @@ export type Tables = {
   };
   programs: {
     id: string;
+    user_id: string;
     name: string;
     mode: 'fixed' | 'custom';
     is_active: boolean;
@@ -80,6 +92,7 @@ export type Tables = {
   };
   meal_entries: {
     id: string;
+    user_id: string;
     date: string;
     meal_type: string;
     food_id: string;
@@ -94,6 +107,7 @@ export type Tables = {
   };
   custom_foods: {
     id: string;
+    user_id: string;
     name: string;
     calories_per_100g: number;
     protein_per_100g: number;
@@ -105,6 +119,7 @@ export type Tables = {
   };
   body_weights: {
     id: string;
+    user_id: string;
     date: string;
     weight_kg: number;
     body_fat_pct: number | null;
@@ -113,6 +128,7 @@ export type Tables = {
   };
   progress_photos: {
     id: string;
+    user_id: string;
     date: string;
     storage_path: string;
     notes: string | null;
@@ -120,6 +136,7 @@ export type Tables = {
   };
   recovery_logs: {
     id: string;
+    user_id: string;
     date: string;
     sleep_hours: number;
     sleep_quality: number;
@@ -133,11 +150,34 @@ export type Tables = {
   };
   nutrition_goals: {
     id: string;
+    user_id: string;
     calories: number;
     protein: number;
     carbs: number;
     fat: number;
     fiber: number | null;
     updated_at: string;
+  };
+  leaderboard_entries: {
+    id: string;
+    user_id: string;
+    week_start: string;
+    workouts_count: number;
+    total_volume_kg: number;
+    streak_days: number;
+    points: number;
+    updated_at: string;
+  };
+  groups: {
+    id: string;
+    name: string;
+    invite_code: string;
+    created_by: string;
+    created_at: string;
+  };
+  group_members: {
+    group_id: string;
+    user_id: string;
+    joined_at: string;
   };
 };

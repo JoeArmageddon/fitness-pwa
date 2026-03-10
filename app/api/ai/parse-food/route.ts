@@ -1,143 +1,116 @@
+// ============================================================
+// POST /api/ai/parse-food
+// Server-side only — GROQ_API_KEY never leaves the server.
+// No Gemini. Inputs sanitized. Outputs validated.
+// ============================================================
+
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from '@/lib/supabase-server';
+import { localFoodParser, safeJSONParser } from '@/lib/ai';
+import { sanitizeText, sanitizeEnum, validateParsedFood } from '@/lib/sanitize';
+import type { MealType, ParsedFoodEntry } from '@/types';
 
-const GEMINI_KEY = process.env.GEMINI_API_KEY;
-const GROQ_KEY   = process.env.GROQ_API_KEY;
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout'];
 
-// ── Compact prompt — short enough to stay within free tier ─
-const PROMPT = (text: string) => `Parse this food into JSON macros. Rules:
-- Multi-word names = single food ("honey chili potato" = 1 item)
-- Respect exact weights if given ("100g" means quantity_g:100)
-- Scale macros correctly: value = (per100g × quantity) / 100
-- Return ONLY raw JSON, no markdown, no explanation
-
-Return this exact structure:
-{"items":[{"name":"food name","quantity_g":100,"calories":185,"protein":22,"carbs":2,"fat":10}],"total_calories":185,"total_protein":22,"total_carbs":2,"total_fat":10}
-
-Food: "${text}"`;
-
-function extractJSON(raw: string): any | null {
-  if (!raw) return null;
-  const cleaned = raw.replace(/^```json\s*/im,'').replace(/^```\s*/im,'').replace(/```\s*$/im,'').trim();
-  try { return JSON.parse(cleaned); } catch {}
-  const m = cleaned.match(/\{[\s\S]*\}/);
-  if (m) { try { return JSON.parse(m[0]); } catch {} }
-  return null;
-}
-
-function isValid(d: any): boolean {
-  return d && Array.isArray(d.items) && d.items.length > 0 &&
-    d.items.every((i: any) => typeof i.name === 'string' && typeof i.calories === 'number' && i.calories > 0) &&
-    typeof d.total_calories === 'number' && d.total_calories > 0;
-}
-
-function rounded(d: any): any {
-  return {
-    ...d,
-    total_calories: Math.round(d.total_calories),
-    total_protein:  Math.round(d.total_protein * 10) / 10,
-    total_carbs:    Math.round(d.total_carbs * 10) / 10,
-    total_fat:      Math.round(d.total_fat * 10) / 10,
-    items: d.items.map((i: any) => ({
-      ...i,
-      calories: Math.round(i.calories),
-      protein:  Math.round(i.protein * 10) / 10,
-      carbs:    Math.round(i.carbs * 10) / 10,
-      fat:      Math.round(i.fat * 10) / 10,
-    })),
-  };
-}
-
-async function callGemini(text: string): Promise<{ data: any; error?: string }> {
-  if (!GEMINI_KEY) return { data: null, error: 'GEMINI_API_KEY not set' };
+async function callGroq(prompt: string): Promise<string | null> {
+  const key = process.env.GROQ_API_KEY;
+  if (!key) return null;
   try {
-    // Use flash-lite — higher free quota than flash
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: PROMPT(text) }] }],
-          generationConfig: { temperature: 0.0, maxOutputTokens: 512 },
-        }),
-      }
-    );
-    const body = await res.json();
-    if (!res.ok) return { data: null, error: `Gemini ${res.status}: ${body?.error?.message ?? JSON.stringify(body).slice(0,150)}` };
-    const raw = body?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!raw) return { data: null, error: 'Gemini empty response' };
-    const parsed = extractJSON(raw);
-    if (!isValid(parsed)) return { data: null, error: `Gemini bad JSON: ${raw.slice(0,150)}` };
-    return { data: rounded(parsed) };
-  } catch (e: any) {
-    return { data: null, error: `Gemini: ${e.message}` };
-  }
-}
-
-async function callGroq(text: string): Promise<{ data: any; error?: string }> {
-  if (!GROQ_KEY) return { data: null, error: 'GROQ_API_KEY not set' };
-  try {
-    // No response_format constraint — just ask for JSON in the message
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch(GROQ_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GROQ_KEY}` },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${key}`,
+      },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: [
-          { role: 'user', content: PROMPT(text) },
+          {
+            role: 'system',
+            content:
+              'You are a certified nutritionist specializing in Indian cuisine. ' +
+              'Respond ONLY with valid JSON. No markdown, no explanations. ' +
+              'Use accurate values from USDA/ICMR databases.',
+          },
+          { role: 'user', content: prompt },
         ],
-        temperature: 0.0,
-        max_tokens: 512,
+        temperature: 0.05,
+        max_tokens: 1024,
       }),
     });
-    const body = await res.json();
-    if (!res.ok) return { data: null, error: `Groq ${res.status}: ${body?.error?.message ?? JSON.stringify(body).slice(0,150)}` };
-    const raw = body?.choices?.[0]?.message?.content;
-    if (!raw) return { data: null, error: 'Groq empty response' };
-    const parsed = extractJSON(raw);
-    if (!isValid(parsed)) return { data: null, error: `Groq bad JSON: ${raw.slice(0,150)}` };
-    return { data: rounded(parsed) };
-  } catch (e: any) {
-    return { data: null, error: `Groq: ${e.message}` };
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data?.choices?.[0]?.message?.content ?? null;
+  } catch {
+    return null;
   }
 }
 
 export async function POST(req: NextRequest) {
-  let text = '';
-  try { text = (await req.json()).text ?? ''; }
-  catch { return NextResponse.json({ error: 'Invalid request' }, { status: 400 }); }
-  if (!text.trim()) return NextResponse.json({ error: 'No food text provided' }, { status: 400 });
-
-  const errors: string[] = [];
-
-  if (GEMINI_KEY) {
-    const r = await callGemini(text);
-    if (r.data) return NextResponse.json({ ...r.data, source: 'gemini' });
-    errors.push(r.error!);
-  } else {
-    errors.push('GEMINI_API_KEY not configured');
+  // ── Auth ──────────────────────────────────────────────────
+  const session = await getServerSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  if (GROQ_KEY) {
-    const r = await callGroq(text);
-    if (r.data) return NextResponse.json({ ...r.data, source: 'groq' });
-    errors.push(r.error!);
-  } else {
-    errors.push('GROQ_API_KEY not configured');
+  // ── Sanitize input ────────────────────────────────────────
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const noKeys = !GEMINI_KEY && !GROQ_KEY;
+  const text = sanitizeText(body.text, 500); // cap meal descriptions at 500 chars
+  const meal_type = sanitizeEnum<MealType>(body.meal_type, MEAL_TYPES, 'snack');
+
+  if (!text || text.length < 2) {
+    return NextResponse.json({ error: 'Text is required (min 2 chars)' }, { status: 400 });
+  }
+
+  // ── Local parser first (zero cost, instant) ───────────────
+  const localResult = localFoodParser(text);
+  if (localResult.confidence !== 'low' && localResult.items.length > 0) {
+    return NextResponse.json({ ...localResult, meal_type, source: 'local' });
+  }
+
+  // ── Groq AI (server-side, key stays secret) ───────────────
+  const prompt = `Parse this meal into nutritional data.
+
+Meal: "${text}"
+
+Return JSON only:
+{"items":[{"name":"food name","quantity_g":150,"calories":248,"protein":46.5,"carbs":0,"fat":5.4,"fiber":0}],"total_calories":248,"total_protein":46.5,"total_carbs":0,"total_fat":5.4,"confidence":"high"}
+
+Rules:
+- Use ICMR values for Indian foods, USDA for others
+- Realistic portions if size not specified
+- confidence: high=well-known, medium=estimated, low=uncertain
+- All values must be non-negative numbers`;
+
+  const aiText = await callGroq(prompt);
+  if (aiText) {
+    const parsed = safeJSONParser<Omit<ParsedFoodEntry, 'confidence'> & { confidence?: string }>(aiText);
+    if (parsed && validateParsedFood(parsed)) {
+      return NextResponse.json({
+        items: parsed.items,
+        total_calories: parsed.total_calories,
+        total_protein: parsed.total_protein,
+        total_carbs: parsed.total_carbs,
+        total_fat: parsed.total_fat ?? 0,
+        confidence: parsed.confidence ?? 'medium',
+        meal_type,
+        source: 'groq',
+      });
+    }
+  }
+
+  // ── Fallback ──────────────────────────────────────────────
   return NextResponse.json({
-    error: noKeys
-      ? 'No AI API keys found. Add GEMINI_API_KEY to .env.local.'
-      : `All AI providers failed: ${errors.join(' | ')}`,
-    noKeys,
-    setup: noKeys ? [
-      '1. Go to aistudio.google.com/app/apikey',
-      '2. Click "Create API Key" (free)',
-      '3. Add to .env.local: GEMINI_API_KEY=AIza...your-key',
-      '4. Restart: npm run dev',
-    ] : null,
-    errors,
-  }, { status: 503 });
+    ...localResult,
+    meal_type,
+    source: 'local',
+    error: 'AI unavailable — local estimates used',
+  });
 }
