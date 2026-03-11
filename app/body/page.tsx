@@ -86,7 +86,8 @@ export default function BodyPage() {
         body_fat_pct: inputBf ? parseFloat(inputBf) : null,
         user_id: user!.id,
       };
-      await supabase.from('body_weights').upsert(payload, { onConflict: 'user_id,date' });
+      const { error: upsertErr } = await supabase.from('body_weights').upsert(payload, { onConflict: 'user_id,date' });
+      if (upsertErr) throw upsertErr;
       setInputWeight(''); setInputBf('');
       setShowAdd(false);
       toast('Weight logged!', 'success');
