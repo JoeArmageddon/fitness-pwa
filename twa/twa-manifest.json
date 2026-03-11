@@ -17,11 +17,11 @@
   "monochromeIconUrl": "https://fitness-pwa-neon.vercel.app/icons/icon-512.png",
   "manifestUrl": "https://fitness-pwa-neon.vercel.app/manifest.json",
   "shortcuts": [],
-  "signing": {
-    "keystore": "./fitness-os.keystore",
+  "signingKey": {
+    "path": "./fitness-os.keystore",
     "alias": "fitness-os",
-    "keypassword": "CHANGE_ME",
-    "storepassword": "CHANGE_ME"
+    "keypassword": "ApexFitness2025",
+    "storepassword": "ApexFitness2025"
   },
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://fitness-pwa-neon.vercel.app/manifest.json",

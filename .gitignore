@@ -1,2 +1,5 @@
 node_modules
 .env.local
+# Android TWA build artifacts
+twa/android/
+twa/*.keystore
