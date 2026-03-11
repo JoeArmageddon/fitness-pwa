@@ -1,15 +1,19 @@
 -- ============================================================
 -- SUPABASE FIX — Run in Supabase SQL Editor
--- Fixes 3 categories of bugs found during testing:
+-- Fixes 4 categories of bugs found during testing:
 --
 -- 1. program_days / program_exercises RLS policies were missing
 --    explicit WITH CHECK clauses → 403 on INSERT (programs save)
 --
--- 2. body_weights UNIQUE constraint was on (date) only from v1.
---    After v2 added user_id, upsert(onConflict:'user_id,date')
---    fails with error 42P10 (no matching constraint)
+-- 2. body_weights / recovery_logs UNIQUE constraint was on (date)
+--    only from v1. After v2 added user_id, upsert fails with
+--    error 42P10 (no matching constraint for onConflict)
 --
 -- 3. nutrition_goals needs UNIQUE(user_id) for onboarding upsert
+--
+-- 4. group_members RLS policy is self-referential (queries itself)
+--    → PostgreSQL detects infinite recursion (error 42P17).
+--    Fixed via a SECURITY DEFINER helper function.
 -- ============================================================
 
 -- ── program_days ─────────────────────────────────────────────
@@ -89,5 +93,40 @@ ALTER TABLE recovery_logs ADD CONSTRAINT recovery_logs_user_date_unique UNIQUE (
 -- Onboarding upsert uses onConflict: 'user_id' — requires UNIQUE(user_id).
 ALTER TABLE nutrition_goals DROP CONSTRAINT IF EXISTS nutrition_goals_user_id_unique;
 ALTER TABLE nutrition_goals ADD CONSTRAINT nutrition_goals_user_id_unique UNIQUE (user_id);
+
+-- ── group_members / groups infinite recursion fix ────────────
+-- The v2 "Members read group_members" policy queries group_members
+-- from within a group_members policy → PostgreSQL error 42P17.
+-- The v2 "Members read their groups" policy on groups also queries
+-- group_members, which can trigger the recursion.
+--
+-- Fix: create a SECURITY DEFINER helper function that runs outside
+-- of RLS context, breaking the circular dependency.
+
+CREATE OR REPLACE FUNCTION get_my_group_ids()
+RETURNS SETOF UUID
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT group_id FROM group_members WHERE user_id = auth.uid();
+$$;
+
+-- Drop and recreate group_members SELECT policy (was self-referential)
+DROP POLICY IF EXISTS "Members read group_members" ON group_members;
+CREATE POLICY "Members read group_members" ON group_members
+  FOR SELECT USING (
+    user_id = auth.uid()
+    OR group_id IN (SELECT get_my_group_ids())
+  );
+
+-- Drop and recreate groups SELECT policy (also used group_members directly)
+DROP POLICY IF EXISTS "Members read their groups" ON groups;
+CREATE POLICY "Members read their groups" ON groups
+  FOR SELECT USING (
+    created_by = auth.uid()
+    OR id IN (SELECT get_my_group_ids())
+  );
 
 SELECT 'All fixes applied successfully!' AS status;
