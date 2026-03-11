@@ -1,4 +1,4 @@
-// File: C:\Users\takia\Desktop\Projects\fitness-pwa\app\api\ai\parse-food\route.ts
+// File: D:\Projects\Projects\fitness-pwa\app\api\ai\parse-food\route.ts
 import * as entry from '../../../../../../app/api/ai/parse-food/route.js'
 import type { NextRequest } from 'next/server.js'
 

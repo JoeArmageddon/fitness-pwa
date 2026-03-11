@@ -1,4 +1,4 @@
-// File: C:\Users\takia\Desktop\Projects\fitness-pwa\app\program\page.tsx
+// File: D:\Projects\Projects\fitness-pwa\app\program\page.tsx
 import * as entry from '../../../../app/program/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

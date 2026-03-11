@@ -99,7 +99,7 @@ function ProgramCard({ program, isActive, onActivate, onDelete }: {
 }
 
 function ParseModal({ isOpen, onClose, onSaved, currentCount }: { isOpen: boolean; onClose: () => void; onSaved: () => void; currentCount: number }) {
-  const { plan, user } = useAppStore();
+  const { plan } = useAppStore();
   const [text, setText] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -128,26 +128,31 @@ function ParseModal({ isOpen, onClose, onSaved, currentCount }: { isOpen: boolea
     if (!parsed?.data || !name.trim()) return;
     setSaving(true);
     try {
-      const { data: prog, error } = await supabase.from('programs')
-        .insert({ name, mode: 'fixed', is_active: false, user_id: user!.id }).select('id').single();
-      if (error) throw error;
-      for (let di = 0; di < parsed.data.days.length; di++) {
-        const day = parsed.data.days[di];
-        const { data: dayRow, error: de } = await supabase.from('program_days')
-          .insert({ program_id: prog.id, day_name: day.day_name, focus: day.focus ?? null, order_index: di }).select('id').single();
-        if (de) throw de;
-        if (day.exercises?.length) {
-          await supabase.from('program_exercises').insert(day.exercises.map((ex: any, ei: number) => ({
-            program_day_id: dayRow.id, name: ex.name,
-            muscle_group: ex.muscle_group ?? inferMuscleGroup(ex.name),
-            sets: ex.sets ?? 3, reps: ex.reps ?? '10', order_index: ei,
-          })));
-        }
+      const res = await fetch('/api/program/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          days: parsed.data.days.map((day: any) => ({
+            day_name: day.day_name,
+            focus: day.focus ?? null,
+            exercises: (day.exercises ?? []).map((ex: any) => ({
+              name: ex.name,
+              muscle_group: ex.muscle_group ?? inferMuscleGroup(ex.name),
+              sets: ex.sets ?? 3,
+              reps: String(ex.reps ?? '10'),
+            })),
+          })),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error ?? 'Save failed');
       }
       toast(`"${name}" saved! 🎯`, 'success');
       setText(''); setName(''); setParsed(null);
       onSaved(); onClose();
-    } catch (e) { console.error(e); toast('Save failed', 'error'); }
+    } catch (e: any) { console.error(e); toast(e?.message ?? 'Save failed', 'error'); }
     finally { setSaving(false); }
   };
 

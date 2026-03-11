@@ -4,6 +4,7 @@
 // ============================================================
 
 import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import type { NextRequest, NextResponse } from 'next/server';
 
@@ -49,4 +50,19 @@ export async function getServerSession() {
   const supabase = createSupabaseServerClient();
   const { data: { session } } = await supabase.auth.getSession();
   return session;
+}
+
+/**
+ * Admin client using service_role key — bypasses RLS entirely.
+ * Only available when SUPABASE_SERVICE_ROLE_KEY is set in .env.local.
+ * Falls back to the regular server client if not configured.
+ */
+export function createSupabaseAdminClient() {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceRoleKey) return null;
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceRoleKey,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
 }
